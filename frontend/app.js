@@ -154,14 +154,10 @@ async function loadSettings() {
         }
 
         // Load prompts
-        if (data.relevance_prompt) {
-            defaultRelevancePrompt = data.relevance_prompt;
-            elements.relevancePrompt.value = data.relevance_prompt;
-        }
-
-        if (data.category_prompt) {
-            defaultCategoryPrompt = data.category_prompt;
-            elements.categoryPrompt.value = data.category_prompt;
+        // Load combined classification prompt
+        if (data.classification_prompt) {
+            defaultClassificationPrompt = data.classification_prompt;
+            elements.classificationPrompt.value = data.classification_prompt;
         }
 
         console.log('✅ Settings loaded successfully');
