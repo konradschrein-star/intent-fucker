@@ -154,7 +154,42 @@
                 <button id="startBtn" class="btn-primary btn-large">Start Classification</button>
 </section>
 
-            <!-- Settings Section -->
+            
+
+            <!-- Processing Console Section -->
+            <section class="card console-section" id="consoleSection" style="display: none;">
+                <h2 class="section-title">
+                    Processing Console
+                </h2>
+                
+                <div class="console-header">
+                    <div class="console-status">
+                        <span id="progressStatus">Ready</span>
+                    </div>
+                    <div class="console-stats">
+                        <span id="progressCount">0 / 0</span>
+                        <span id="progressPercentage">0%</span>
+                    </div>
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="time-estimate" id="timeEstimate"></div>
+                </div>
+                
+                <div class="console-window">
+                    <div class="console-controls">
+                        <span class="console-badge" id="consoleBadge">0 keywords</span>
+                        <button class="btn-console-toggle" id="consoleToggle">
+                            <span>Show Details</span>
+                        </button>
+                    </div>
+                    <div class="console-output" id="consoleOutput"></div>
+                </div>
+            </section>
+<!-- Settings Section -->
             <section class="card settings-section">
                 <div class="section-header">
                     <h2 class="section-title">
