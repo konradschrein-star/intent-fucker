@@ -17,26 +17,34 @@ if os.path.exists('build'):
 if os.path.exists('dist'):
     shutil.rmtree('dist')
 
-# PyInstaller arguments
-PyInstaller.__main__.run([
+# Build arguments (Windows syntax uses ; for paths)
+args = [
     'launcher.py',  # Main entry point
     '--name=KeywordClassifier',
     '--onefile',  # Single executable
     '--windowed',  # No console window
-    '--icon=icon.ico' if os.path.exists('icon.ico') else '',
-    '--add-data=frontend;frontend',  # Include frontend files
-    '--add-data=backend;backend',  # Include backend files  
+    '--add-data=frontend;frontend',  # Include frontend files (Windows: semicolon!)
+    '--add-data=backend;backend',  # Include backend files
     '--hidden-import=flask',
     '--hidden-import=flask_cors',
     '--hidden-import=pandas',
     '--hidden-import=requests',
     '--hidden-import=dotenv',
     '--clean',
-])
+]
+
+# Run PyInstaller
+PyInstaller.__main__.run(args)
 
 print("\n" + "=" * 60)
 print("✅ Build Complete!")
 print("=" * 60)
-print(f"📦 Executable location: dist/KeywordClassifier.exe")
-print(f"📏 File size: {os.path.getsize('dist/KeywordClassifier.exe') / 1024 / 1024:.1f} MB")
-print("\n🚀 Ready to distribute!")
+
+exe_path = 'dist/KeywordClassifier.exe'
+if os.path.exists(exe_path):
+    size_mb = os.path.getsize(exe_path) / 1024 / 1024
+    print(f"📦 Executable location: {exe_path}")
+    print(f"📏 File size: {size_mb:.1f} MB")
+    print("\n🚀 Ready to distribute!")
+else:
+    print("❌ Build failed - executable not found")
