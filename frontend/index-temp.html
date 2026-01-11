@@ -199,26 +199,68 @@
                         </div>
                     </div>
 
-                    <!-- Combined Classification Prompt (ONE PROMPT DOES BOTH!) -->
+                    <!-- Prompt Editors -->
                     <div class="form-group">
                         <label>
-                            AI Classification Prompt (Relevance + Category)
-                            <span class="info-tooltip" title="Single prompt that does BOTH relevance and category in one AI call (2x faster!)">ℹ️</span>
+                            AI Classification Prompt
                             <button class="btn-reset" id="resetClassificationPrompt">Reset to Default</button>
                         </label>
-                        <textarea id="classificationPrompt" class="textarea-field-code" rows="12"></textarea>
-                        <div class="help-box">
-                            <p class="help-text"><strong>What this does:</strong> This combined prompt analyzes BOTH relevance and category in a single AI call (2x faster!).</p>
-                            <p class="help-text"><strong>Available variables:</strong></p>
-                            <ul class="help-list">
-                                <li><code>{topic}</code> - Your research topic</li>
-                                <li><code>{keyword}</code> - The keyword being analyzed</li>
-                                <li><code>{categories}</code> - Your list of categories</li>
-                            </ul>
-                            <p class="help-text"><strong>⚡ Performance:</strong> Single prompt = 2x faster than old two-step process!</p>
-                        </div>
+                        <textarea id="classificationPrompt" class="textarea-field-code" rows="8"></textarea>
+                        <p class="help-text">Variables: {topic}, {keyword}</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Category Classification Prompt
+                            <button class="btn-reset" id="resetCategoryPrompt">Reset to Default</button>
+                        </label>
+                        <textarea id="categoryPrompt" class="textarea-field-code" rows="8"></textarea>
+                        <p class="help-text">Variables: {keyword}, {categories}</p>
                     </div>
                 </div>
+            </section>
+
+            <!-- Processing Section -->
+            <section class="card processing-section">
+                <h2 class="section-title">
+                    <span class="icon">🚀</span>
+                    Processing
+                </h2>
+
+                <button id="startBtn" class="btn-primary btn-large">
+                    <span class="btn-text">Start Classification</span>
+                    <svg class="btn-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 10L15 10M15 10L10 5M15 10L10 15" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+
+                <!-- Progress Display -->
+                <div class="progress-container" id="progressContainer" style="display: none;">
+                    <div class="progress-info">
+                        <div class="progress-label">
+                            <span id="progressStatus">Processing keywords...</span>
+                            <span id="progressPercentage">0%</span>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="progressCount">0 / 0</span>
+                            <span id="timeEstimate" class="time-estimate">Estimating time...</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+
+                    <!-- Live Processing Console -->
+                    <div class="console-container">
+                        <div class="console-header">
+                            <span class="console-title">⚡ Live Processing Console</span>
+                            <span class="console-badge" id="consoleBadge">0 processed</span>
+                        </div>
+                        <div class="console-output" id="consoleOutput">
+                            <div class="console-line console-info">🚀 Starting classification...</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 

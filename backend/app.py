@@ -17,6 +17,7 @@ from csv_processor import CSVProcessor
 from config import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     DEFAULT_CATEGORIES,
+    DEFAULT_CLASSIFICATION_PROMPT,
     DEFAULT_RELEVANCE_PROMPT,
     DEFAULT_CATEGORY_PROMPT,
     ALLOWED_EXTENSIONS,
@@ -119,8 +120,9 @@ def get_settings():
     return jsonify({
         'confidence_threshold': DEFAULT_CONFIDENCE_THRESHOLD,
         'categories': DEFAULT_CATEGORIES,
-        'relevance_prompt': DEFAULT_RELEVANCE_PROMPT,
-        'category_prompt': DEFAULT_CATEGORY_PROMPT
+        'classification_prompt': DEFAULT_CLASSIFICATION_PROMPT,  # NEW: Combined prompt (2x faster!)
+        'relevance_prompt': DEFAULT_RELEVANCE_PROMPT,  # Legacy: for backward compatibility
+        'category_prompt': DEFAULT_CATEGORY_PROMPT  # Legacy: for backward compatibility
     })
 
 
