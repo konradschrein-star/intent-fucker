@@ -1,11 +1,13 @@
 """
 Keyword Classifier
 Handles relevance filtering and category classification using Llama 3.1
+OPTIMIZED: Now uses SINGLE AI call instead of TWO (2x faster!)
 """
 
 from typing import Dict, List, Optional, Tuple
 from ollama_client import OllamaClient
 from config import (
+    DEFAULT_CLASSIFICATION_PROMPT,
     DEFAULT_RELEVANCE_PROMPT,
     DEFAULT_CATEGORY_PROMPT,
     DEFAULT_CONFIDENCE_THRESHOLD,
@@ -17,11 +19,16 @@ class KeywordClassifier:
     """
     This is the brain of the app! It uses AI to classify keywords.
     
-    For each keyword, it does two things:
-    1. RELEVANCE CHECK: "Is this keyword actually about the topic?"
+    OPTIMIZED APPROACH:
+    - Uses ONE AI call instead of TWO (2x faster processing!)
+    - Removes unnecessary "reason" field (faster responses)
+    - Combined relevance + category classification
+    
+    For each keyword, it determines:
+    1. RELEVANCE: "Is this keyword actually about the topic?"
        Example: If topic is "Ys games", "ys origin" = relevant, "yes button" = not relevant
        
-    2. CATEGORY CLASSIFICATION: "What type of search is this?"
+    2. CATEGORY: "What type of search is this?"
        Example: "how to install" = how-to, "ys vs trails" = comparison
     
     Think of it like a smart filter that:
@@ -33,10 +40,11 @@ class KeywordClassifier:
         # The AI client we use to talk to Llama 3.1
         self.ollama = ollama_client
         
-        # The prompt template for checking relevance (is it on-topic?)
-        self.relevance_prompt_template = DEFAULT_RELEVANCE_PROMPT
+        # The COMBINED prompt template (does both relevance + category in ONE call!)
+        self.classification_prompt_template = DEFAULT_CLASSIFICATION_PROMPT
         
-        # The prompt template for categorizing keywords (what type of search?)
+        # Legacy prompts (kept for backward compatibility if user customized them)
+        self.relevance_prompt_template = DEFAULT_RELEVANCE_PROMPT
         self.category_prompt_template = DEFAULT_CATEGORY_PROMPT
         
         # Minimum confidence score to accept a keyword (0-100)
@@ -47,11 +55,11 @@ class KeywordClassifier:
         self.categories = DEFAULT_CATEGORIES.copy()
     
     def set_relevance_prompt(self, template: str):
-        """Update the relevance filtering prompt template"""
+        """Update the relevance filtering prompt template (legacy support)"""
         self.relevance_prompt_template = template
     
     def set_category_prompt(self, template: str):
-        """Update the category classification prompt template"""
+        """Update the category classification prompt template (legacy support)"""
         self.category_prompt_template = template
     
     def set_confidence_threshold(self, threshold: int):
@@ -68,128 +76,132 @@ class KeywordClassifier:
         if category in self.categories:
             self.categories.remove(category)
     
-    def get_categories(self) -> List[str]:
+    def get_categories() -> List[str]:
         """Get list of current categories"""
         return self.categories.copy()
     
-    def check_relevance(self, keyword: str, topic: str) -> Tuple[bool, int, str]:
+    def classify_keyword_combined(self, keyword: str, topic: str) -> Dict:
         """
-        Ask the AI: "Is this keyword actually about our topic?"
+        OPTIMIZED: Perform BOTH relevance and category classification in ONE AI call!
         
-        This is the filter that removes junk keywords.
-        
-        Example:
-            Topic: "Ys video games"
-            Keyword: "ys origin walkthrough" → ✅ Relevant (confidence: 95)
-            Keyword: "yes button html" → ❌ Not relevant (confidence: 10)
+        This is 2x faster than the old approach (which made 2 separate calls).
         
         Args:
-            keyword: The search term to check
+            keyword: The search term to analyze
             topic: What the keyword should be about
             
         Returns:
-            (is_accepted, confidence_score, reason)
-            - is_accepted: True if keyword passes the threshold
-            - confidence_score: How sure the AI is (0-100)
-            - reason: Why the AI made this decision
+            Dictionary with all classification results:
+            - relevance_accepted: True/False
+            - relevance_score: 0-100
+            - category: category name
+            - category_confidence: 0-100
         """
-        # Format the prompt
+        # Format categories for prompt
+        categories_str = "\n".join([f"- {cat}" for cat in self.categories])
+        
+        # Format the COMBINED prompt
+        prompt = self.classification_prompt_template.format(
+            topic=topic,
+            keyword=keyword,
+            categories=categories_str
+        )
+        
+        # Get response from Llama (ONE call does everything!)
+        result = self.ollama.generate_json(prompt)
+        
+        if result:
+            try:
+                # Parse the response
+                relevant = result.get('relevant', False)
+                relevance_confidence = int(result.get('relevance_confidence', 0))
+                category = result.get('category', 'unknown')
+                category_confidence = int(result.get('category_confidence', 0))
+                
+                # Validate category
+                if category not in self.categories and category != 'none':
+                    category = 'unknown'
+                
+                # Check against threshold
+                is_accepted = relevant and relevance_confidence >= self.confidence_threshold
+                
+                return {
+                    'keyword': keyword,
+                    'relevance_accepted': is_accepted,
+                    'relevance_score': relevance_confidence,
+                    'category': category if is_accepted else 'none',
+                    'category_confidence': category_confidence if is_accepted else 0
+                }
+            except (ValueError, TypeError) as e:
+                print(f"Error parsing combined classification result: {e}")
+        
+        # Default to rejected if parsing fails
+        return {
+            'keyword': keyword,
+            'relevance_accepted': False,
+            'relevance_score': 0,
+            'category': 'none',
+            'category_confidence': 0
+        }
+    
+    def check_relevance(self, keyword: str, topic: str) -> Tuple[bool, int]:
+        """
+        Legacy method: Check only relevance (SLOWER - use classify_keyword_combined instead!)
+        Kept for backward compatibility.
+        """
         prompt = self.relevance_prompt_template.format(
             topic=topic,
             keyword=keyword
         )
         
-        # Get response from Llama
         result = self.ollama.generate_json(prompt)
         
         if result:
             try:
                 relevant = result.get('relevant', False)
                 confidence = int(result.get('confidence', 0))
-                reason = result.get('reason', 'No reason provided')
-                
-                # Check against threshold
                 is_accepted = relevant and confidence >= self.confidence_threshold
-                
-                return (is_accepted, confidence, reason)
+                return (is_accepted, confidence)
             except (ValueError, TypeError) as e:
                 print(f"Error parsing relevance result: {e}")
         
-        # Default to rejected if parsing fails
-        return (False, 0, "Failed to analyze")
+        return (False, 0)
     
-    def classify_category(self, keyword: str) -> Tuple[str, int, str]:
+    def classify_category(self, keyword: str) -> Tuple[str, int]:
         """
-        Ask the AI: "What type of search is this?"
-        
-        This categorizes keywords by user intent (what they're trying to do).
-        
-        Examples:
-            "how to install ys" → how-to (user wants instructions)
-            "ys vs trails" → comparison (user comparing options)
-            "ys walkthrough" → walkthrough (user wants step-by-step guide)
-            "what is ys" → informational (user wants to learn)
-            "download ys" → transactional (user wants to take action)
-        
-        Args:
-            keyword: The search term to categorize
-            
-        Returns:
-            (category, confidence_score, reason)
-            - category: The assigned category (or 'unknown' if unsure)
-            - confidence_score: How sure the AI is (0-100)
-            - reason: Why the AI chose this category
+        Legacy method: Classify only category (SLOWER - use classify_keyword_combined instead!)
+        Kept for backward compatibility.
         """
-        # Format categories for prompt
         categories_str = "\n".join([f"- {cat}" for cat in self.categories])
         
-        # Format the prompt
         prompt = self.category_prompt_template.format(
             keyword=keyword,
             categories=categories_str
         )
         
-        # Get response from Llama
         result = self.ollama.generate_json(prompt)
         
         if result:
             try:
                 category = result.get('category', 'unknown')
                 confidence = int(result.get('confidence', 0))
-                reason = result.get('reason', 'No reason provided')
                 
-                # Validate category is in our list
                 if category not in self.categories:
                     category = 'unknown'
                 
-                return (category, confidence, reason)
+                return (category, confidence)
             except (ValueError, TypeError) as e:
                 print(f"Error parsing category result: {e}")
         
-        # Default to unknown if parsing fails
-        return ('unknown', 0, "Failed to classify")
+        return ('unknown', 0)
     
     def classify_keyword(self, keyword: str, topic: str) -> Dict:
         """
-        Perform complete classification: relevance + category
+        Main classification method - uses OPTIMIZED single-call approach!
         
-        Returns:
-            Dictionary with all classification results
+        This is the method called by the backend during processing.
         """
-        # Check relevance
-        is_relevant, relevance_score, relevance_reason = self.check_relevance(keyword, topic)
-        
-        # Classify category
-        category, category_confidence, category_reason = self.classify_category(keyword)
-        
-        return {
-            'keyword': keyword,
-            'relevance_accepted': is_relevant,
-            'relevance_score': relevance_score,
-            'category': category,
-            'category_confidence': category_confidence,
-            'reason': f"Relevance: {relevance_reason} | Category: {category_reason}"
-        }
+        return self.classify_keyword_combined(keyword, topic)
 
 
 # Test function
@@ -200,11 +212,11 @@ if __name__ == "__main__":
     classifier = KeywordClassifier(client)
     
     if client.is_available():
-        # Test relevance check
+        # Test combined classification
         result = classifier.classify_keyword(
             keyword="ys origin walkthrough",
             topic="Ys video game series"
         )
-        print(f"Classification result: {result}")
+        print(f"Combined classification result: {result}")
     else:
         print("Ollama is not available. Please start the Ollama service.")
