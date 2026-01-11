@@ -30,9 +30,8 @@ let uploadedFilePath = null;
 // Users can add/remove from this list in the UI
 let categories = ['how-to', 'comparison', 'walkthrough', 'informational', 'transactional'];
 
-// Default AI prompts (loaded from backend, can be edited by users)
-let defaultRelevancePrompt = '';  // Prompt for checking if keyword is relevant
-let defaultCategoryPrompt = '';   // Prompt for categorizing keywords
+// Default AI prompt (loaded from backend, can be edited by users)
+let defaultClassificationPrompt = '';  // Combined prompt for relevance + category
 
 // DOM Elements
 const elements = {
@@ -70,10 +69,8 @@ const elements = {
     categoryList: document.getElementById('categoryList'),
     newCategoryInput: document.getElementById('newCategoryInput'),
     addCategoryBtn: document.getElementById('addCategoryBtn'),
-    relevancePrompt: document.getElementById('relevancePrompt'),
-    categoryPrompt: document.getElementById('categoryPrompt'),
-    resetRelevancePrompt: document.getElementById('resetRelevancePrompt'),
-    resetCategoryPrompt: document.getElementById('resetCategoryPrompt'),
+    classificationPrompt: document.getElementById('classificationPrompt'),
+    resetClassificationPrompt: document.getElementById('resetClassificationPrompt'),
 
     // Processing
     startBtn: document.getElementById('startBtn'),
@@ -204,11 +201,8 @@ function setupEventListeners() {
     elements.newCategoryInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addCategory();
     });
-    elements.resetRelevancePrompt.addEventListener('click', () => {
-        elements.relevancePrompt.value = defaultRelevancePrompt;
-    });
-    elements.resetCategoryPrompt.addEventListener('click', () => {
-        elements.categoryPrompt.value = defaultCategoryPrompt;
+    elements.resetClassificationPrompt.addEventListener('click', () => {
+        elements.classificationPrompt.value = defaultClassificationPrompt;
     });
 
     // Processing
@@ -401,8 +395,7 @@ async function startProcessing() {
         topic,
         confidence_threshold: parseInt(elements.confidenceSlider.value),
         categories,
-        relevance_prompt: elements.relevancePrompt.value,
-        category_prompt: elements.categoryPrompt.value
+        classification_prompt: elements.classificationPrompt.value
     };
 
     if (hasFile) {

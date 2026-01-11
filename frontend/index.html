@@ -289,4 +289,24 @@
     <script src="app.js"></script>
 </body>
 
-</html>
+</html<!-- Combined Classification Prompt -->
+                    <div class="form-group">
+                        <label>
+                            AI Classification Prompt (Relevance + Category)
+                            <span class="info-tooltip" title="Single prompt that does BOTH relevance and category in one AI call (2x faster!)">ℹ️</span>
+                            <button class="btn-reset" id="resetClassificationPrompt">Reset to Default</button>
+                        </label>
+                        <textarea id="classificationPrompt" class="textarea-field-code" rows="14"></textarea>
+                        <div class="help-box">
+                            <p class="help-text"><strong>What this does:</strong> ONE prompt that analyzes BOTH relevance AND category in a single AI call (2x faster!).</p>
+                            <p class="help-text"><strong>Variables you can use:</strong></p>
+                            <ul class="help-list">
+                                <li><code>{topic}</code> - Your research topic</li>
+                                <li><code>{keyword}</code> - The keyword being analyzed</li>
+                                <li><code>{categories}</code> - Your list of categories</li>
+                            </ul>
+                            <p class="help-text"><strong>⚡ Why it's better:</strong> Old system: 2 AI calls = SLOW. New system: 1 AI call = 2X FASTER!</p>
+                            <p class="help-text"><strong>💡 Advanced users:</strong> Must return JSON: <code>{"relevant": true/false, "relevance_confidence": 0-100, "category": "name", "category_confidence": 0-100}</code></p>
+                        </div>
+                    </div>
+                </div>>
