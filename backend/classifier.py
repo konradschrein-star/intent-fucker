@@ -14,11 +14,36 @@ from config import (
 
 
 class KeywordClassifier:
+    """
+    This is the brain of the app! It uses AI to classify keywords.
+    
+    For each keyword, it does two things:
+    1. RELEVANCE CHECK: "Is this keyword actually about the topic?"
+       Example: If topic is "Ys games", "ys origin" = relevant, "yes button" = not relevant
+       
+    2. CATEGORY CLASSIFICATION: "What type of search is this?"
+       Example: "how to install" = how-to, "ys vs trails" = comparison
+    
+    Think of it like a smart filter that:
+    - Throws out irrelevant keywords (the junk)
+    - Labels the good keywords by what users are looking for
+    """
+    
     def __init__(self, ollama_client: OllamaClient):
+        # The AI client we use to talk to Llama 3.1
         self.ollama = ollama_client
+        
+        # The prompt template for checking relevance (is it on-topic?)
         self.relevance_prompt_template = DEFAULT_RELEVANCE_PROMPT
+        
+        # The prompt template for categorizing keywords (what type of search?)
         self.category_prompt_template = DEFAULT_CATEGORY_PROMPT
+        
+        # Minimum confidence score to accept a keyword (0-100)
+        # Example: 75 means "at least 75% sure it's relevant"
         self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
+        
+        # List of categories available (how-to, comparison, etc.)
         self.categories = DEFAULT_CATEGORIES.copy()
     
     def set_relevance_prompt(self, template: str):
@@ -49,10 +74,24 @@ class KeywordClassifier:
     
     def check_relevance(self, keyword: str, topic: str) -> Tuple[bool, int, str]:
         """
-        Check if a keyword is relevant to the topic
+        Ask the AI: "Is this keyword actually about our topic?"
         
+        This is the filter that removes junk keywords.
+        
+        Example:
+            Topic: "Ys video games"
+            Keyword: "ys origin walkthrough" → ✅ Relevant (confidence: 95)
+            Keyword: "yes button html" → ❌ Not relevant (confidence: 10)
+        
+        Args:
+            keyword: The search term to check
+            topic: What the keyword should be about
+            
         Returns:
-            Tuple of (is_relevant, confidence_score, reason)
+            (is_accepted, confidence_score, reason)
+            - is_accepted: True if keyword passes the threshold
+            - confidence_score: How sure the AI is (0-100)
+            - reason: Why the AI made this decision
         """
         # Format the prompt
         prompt = self.relevance_prompt_template.format(
@@ -81,10 +120,25 @@ class KeywordClassifier:
     
     def classify_category(self, keyword: str) -> Tuple[str, int, str]:
         """
-        Classify keyword into a category
+        Ask the AI: "What type of search is this?"
         
+        This categorizes keywords by user intent (what they're trying to do).
+        
+        Examples:
+            "how to install ys" → how-to (user wants instructions)
+            "ys vs trails" → comparison (user comparing options)
+            "ys walkthrough" → walkthrough (user wants step-by-step guide)
+            "what is ys" → informational (user wants to learn)
+            "download ys" → transactional (user wants to take action)
+        
+        Args:
+            keyword: The search term to categorize
+            
         Returns:
-            Tuple of (category, confidence_score, reason)
+            (category, confidence_score, reason)
+            - category: The assigned category (or 'unknown' if unsure)
+            - confidence_score: How sure the AI is (0-100)
+            - reason: Why the AI chose this category
         """
         # Format categories for prompt
         categories_str = "\n".join([f"- {cat}" for cat in self.categories])

@@ -46,7 +46,10 @@ class ProcessingJob:
         self.progress = 0
         self.total = len(keywords)
         self.current_keyword = ''
+        self.current_result = None  # Latest keyword result for live console
         self.results = []
+        self.start_time = None
+        self.processing_times = []  # Track time per keyword for estimation
         self.error = None
         self.accepted_file = None
         self.rejected_file = None
@@ -185,8 +188,11 @@ def start_processing():
 
 def process_keywords(job_id, topic, keywords, confidence_threshold, categories, relevance_prompt, category_prompt):
     """Background processing of keywords"""
+    import time
+    
     job = jobs[job_id]
     job.status = 'processing'
+    job.start_time = time.time()
     
     try:
         # Initialize classifier
@@ -201,6 +207,7 @@ def process_keywords(job_id, topic, keywords, confidence_threshold, categories, 
         
         # Process each keyword
         for idx, keyword_data in enumerate(keywords):
+            keyword_start = time.time()
             keyword = keyword_data['title']
             job.current_keyword = keyword
             
@@ -209,6 +216,19 @@ def process_keywords(job_id, topic, keywords, confidence_threshold, categories, 
             
             # Add to processor results
             processor.add_result(keyword_data, result)
+            
+            # Track timing
+            keyword_time = time.time() - keyword_start
+            job.processing_times.append(keyword_time)
+            
+            # Store latest result for live console
+            job.current_result = {
+                'keyword': keyword,
+                'accepted': result['relevance_accepted'],
+                'score': result['relevance_score'],
+                'category': result['category'],
+                'timestamp': time.time()
+            }
             
             # Update progress
             job.progress = idx + 1
@@ -232,18 +252,29 @@ def process_keywords(job_id, topic, keywords, confidence_threshold, categories, 
 
 @app.route('/api/progress/<job_id>', methods=['GET'])
 def get_progress(job_id):
-    """Get job progress"""
+    """Get job progress with detailed live updates"""
     if job_id not in jobs:
         return jsonify({'error': 'Job not found'}), 404
     
     job = jobs[job_id]
+    
+    # Calculate time estimate
+    time_remaining = None
+    avg_time_per_keyword = None
+    if job.processing_times and job.progress > 0:
+        avg_time_per_keyword = sum(job.processing_times) / len(job.processing_times)
+        keywords_remaining = job.total - job.progress
+        time_remaining = avg_time_per_keyword * keywords_remaining
     
     return jsonify({
         'status': job.status,
         'progress': job.progress,
         'total': job.total,
         'current_keyword': job.current_keyword,
-        'percentage': round((job.progress / job.total * 100), 2) if job.total > 0 else 0
+        'current_result': job.current_result,  # Latest result for console
+        'percentage': round((job.progress / job.total * 100), 2) if job.total > 0 else 0,
+        'time_remaining': round(time_remaining) if time_remaining else None,
+        'avg_time_per_keyword': round(avg_time_per_keyword, 2) if avg_time_per_keyword else None
     })
 
 

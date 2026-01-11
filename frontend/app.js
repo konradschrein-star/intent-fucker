@@ -1,21 +1,51 @@
 /**
  * Keyword Classifier Frontend Application
- * Handles UI interactions and API communication
+ * 
+ * This file controls everything you see and interact with in the browser!
+ * It handles:
+ * - Showing/hiding different sections
+ * - Uploading files
+ * - Sending data to the backend
+ * - Updating progress bars
+ * - Displaying results
+ * 
+ * Think of it as the "face" of the app that users interact with,
+ * while the backend (Python) is the "brain" that does the AI work.
  */
 
+// Where our backend server is running (change if your backend is on a different port)
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// State
+// ============================================================================
+// STATE VARIABLES - These store the current state of the application
+// ============================================================================
+
+// The ID of the current processing job (assigned by backend when you click "Start")
 let currentJobId = null;
+
+// Path to the uploaded CSV file (stored after successful upload)
 let uploadedFilePath = null;
+
+// List of categories users can classify keywords into
+// Users can add/remove from this list in the UI
 let categories = ['how-to', 'comparison', 'walkthrough', 'informational', 'transactional'];
-let defaultRelevancePrompt = '';
-let defaultCategoryPrompt = '';
+
+// Default AI prompts (loaded from backend, can be edited by users)
+let defaultRelevancePrompt = '';  // Prompt for checking if keyword is relevant
+let defaultCategoryPrompt = '';   // Prompt for categorizing keywords
 
 // DOM Elements
 const elements = {
-    // Status
+    // Status Section
+    backendStatusCard: document.getElementById('backendStatusCard'),
+    backendStatus: document.getElementById('backendStatus'),
+    startBackendBtn: document.getElementById('startBackendBtn'),
+    ollamaStatusCard: document.getElementById('ollamaStatusCard'),
     ollamaStatus: document.getElementById('ollamaStatus'),
+    ollamaStatusText: document.getElementById('ollamaStatusText'),
+    showOllamaGuideBtn: document.getElementById('showOllamaGuideBtn'),
+    ollamaGuide: document.getElementById('ollamaGuide'),
+    closeGuideBtn: document.getElementById('closeGuideBtn'),
 
     // Input
     topicInput: document.getElementById('topicInput'),
@@ -51,8 +81,10 @@ const elements = {
     progressStatus: document.getElementById('progressStatus'),
     progressPercentage: document.getElementById('progressPercentage'),
     progressCount: document.getElementById('progressCount'),
-    currentKeyword: document.getElementById('currentKeyword'),
+    timeEstimate: document.getElementById('timeEstimate'),
     progressFill: document.getElementById('progressFill'),
+    consoleOutput: document.getElementById('consoleOutput'),
+    consoleBadge: document.getElementById('consoleBadge'),
 
     // Results
     resultsSection: document.getElementById('resultsSection'),
@@ -66,10 +98,18 @@ const elements = {
     downloadRejected: document.getElementById('downloadRejected')
 };
 
-// Initialize
+// ============================================================================
+// INITIALIZATION - This runs when the page first loads
+// ============================================================================
+
 async function init() {
+    // 1. Check if Ollama (the AI service) is running
     await checkOllamaStatus();
+
+    // 2. Load default settings from the backend
     await loadSettings();
+
+    // 3. Setup all button clicks, file uploads, etc.
     setupEventListeners();
 }
 

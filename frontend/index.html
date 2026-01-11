@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -16,12 +18,13 @@
             <div class="logo">
                 <div class="logo-icon">
                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                        <path d="M16 2L26 8V24L16 30L6 24V8L16 2Z" stroke="url(#gradient)" stroke-width="2" fill="none"/>
-                        <circle cx="16" cy="16" r="6" fill="url(#gradient)"/>
+                        <path d="M16 2L26 8V24L16 30L6 24V8L16 2Z" stroke="url(#gradient)" stroke-width="2"
+                            fill="none" />
+                        <circle cx="16" cy="16" r="6" fill="url(#gradient)" />
                         <defs>
                             <linearGradient id="gradient" x1="6" y1="2" x2="26" y2="30">
-                                <stop offset="0%" style="stop-color:#3b82f6"/>
-                                <stop offset="100%" style="stop-color:#1d4ed8"/>
+                                <stop offset="0%" style="stop-color:#3b82f6" />
+                                <stop offset="100%" style="stop-color:#1d4ed8" />
                             </linearGradient>
                         </defs>
                     </svg>
@@ -39,22 +42,75 @@
 
         <!-- Main Content -->
         <div class="main-content">
+            <!-- System Status Section -->
+            <section class="card status-section" id="statusSection">
+                <h2 class="section-title">
+                    <span class="icon">🖥️</span>
+                    System Status
+                </h2>
+
+                <div class="status-grid">
+                    <!-- Backend Status -->
+                    <div class="status-card" id="backendStatusCard">
+                        <div class="status-card-header">
+                            <span class="status-card-icon">🔧</span>
+                            <span class="status-card-title">Backend Server</span>
+                        </div>
+                        <div class="status-card-status" id="backendStatus">Checking...</div>
+                        <button class="btn-status" id="startBackendBtn" style="display: none;">Start Backend</button>
+                    </div>
+
+                    <!-- Ollama Status -->
+                    <div class="status-card" id="ollamaStatusCard">
+                        <div class="status-card-header">
+                            <span class="status-card-icon">🤖</span>
+                            <span class="status-card-title">Ollama AI</span>
+                        </div>
+                        <div class="status-card-status" id="ollamaStatusText">Checking...</div>
+                        <button class="btn-status" id="showOllamaGuideBtn" style="display: none;">Install Guide</button>
+                    </div>
+                </div>
+
+                <!-- Ollama Installation Guide (Hidden by default) -->
+                <div class="guide-panel" id="ollamaGuide" style="display: none;">
+                    <h3>📚 How to Install Ollama</h3>
+                    <ol class="guide-steps">
+                        <li>
+                            <strong>Download Ollama:</strong> Visit
+                            <a href="https://ollama.ai/download" target="_blank">ollama.ai/download</a>
+                        </li>
+                        <li>
+                            <strong>Install:</strong> Run the installer (Windows/Mac/Linux available)
+                        </li>
+                        <li>
+                            <strong>Pull the AI Model:</strong> Open terminal/PowerShell and run:
+                            <code class="code-block">ollama pull llama3.1:8b</code>
+                            <em>(~4.7GB download, one-time only)</em>
+                        </li>
+                        <li>
+                            <strong>Start Ollama:</strong> Run:
+                            <code class="code-block">ollama serve</code>
+                            <em>(Keep this terminal open while using the app)</em>
+                        </li>
+                        <li>
+                            <strong>Refresh:</strong> Reload this page to check status
+                        </li>
+                    </ol>
+                    <button class="btn-secondary" id="closeGuideBtn">Close Guide</button>
+                </div>
+            </section>
+
             <!-- Input Section -->
             <section class="card input-section">
                 <h2 class="section-title">
                     <span class="icon">📥</span>
                     Input Keywords
                 </h2>
-                
+
                 <!-- Topic Input -->
                 <div class="form-group">
                     <label for="topicInput">Topic / Target Subject</label>
-                    <input 
-                        type="text" 
-                        id="topicInput" 
-                        placeholder="e.g., Ys video game series"
-                        class="input-field"
-                    >
+                    <input type="text" id="topicInput" placeholder="e.g., Ys video game series" class="input-field">
                     <p class="help-text">What topic should the keywords be about?</p>
                 </div>
 
@@ -68,8 +124,10 @@
                 <div class="tab-content active" id="uploadTab">
                     <div class="upload-zone" id="uploadZone">
                         <svg class="upload-icon" width="48" height="48" viewBox="0 0 48 48" fill="none">
-                            <path d="M24 16V32M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M40 32V38C40 40.2091 38.2091 42 36 42H12C9.79086 42 8 40.2091 8 38V32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M24 16V32M24 16L18 22M24 16L30 22" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M40 32V38C40 40.2091 38.2091 42 36 42H12C9.79086 42 8 40.2091 8 38V32"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                         <p class="upload-text">Drop CSV file here or click to browse</p>
                         <p class="upload-subtext">Required columns: title, views, views_per_year</p>
@@ -86,13 +144,11 @@
 
                 <!-- Manual Input Tab -->
                 <div class="tab-content" id="manualTab">
-                    <textarea 
-                        id="manualInput" 
-                        class="textarea-field" 
+                    <textarea id="manualInput" class="textarea-field"
                         placeholder="Enter keywords (one per line):&#10;ys origin walkthrough&#10;ys 8 review, 1000, 500&#10;how to install ys&#10;&#10;Format: keyword OR keyword,views,views_per_year"
-                        rows="10"
-                    ></textarea>
-                    <p class="help-text">Enter one keyword per line. Optional: add views and views_per_year after commas.</p>
+                        rows="10"></textarea>
+                    <p class="help-text">Enter one keyword per line. Optional: add views and views_per_year after
+                        commas.</p>
                 </div>
             </section>
 
@@ -106,7 +162,7 @@
                     <button class="btn-toggle" id="settingsToggle">
                         <span>Expand</span>
                         <svg class="chevron" width="16" height="16" viewBox="0 0 16 16">
-                            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" fill="none" />
                         </svg>
                     </button>
                 </div>
@@ -117,14 +173,7 @@
                         <label for="confidenceSlider">
                             Confidence Threshold: <span id="confidenceValue">75</span>%
                         </label>
-                        <input 
-                            type="range" 
-                            id="confidenceSlider" 
-                            min="0" 
-                            max="100" 
-                            value="75"
-                            class="slider"
-                        >
+                        <input type="range" id="confidenceSlider" min="0" max="100" value="75" class="slider">
                         <p class="help-text">Keywords with relevance score below this threshold will be rejected</p>
                     </div>
 
@@ -132,14 +181,20 @@
                     <div class="form-group">
                         <label>Categories</label>
                         <div class="category-pills" id="categoryList">
-                            <span class="pill">how-to <button class="pill-remove" data-category="how-to">✕</button></span>
-                            <span class="pill">comparison <button class="pill-remove" data-category="comparison">✕</button></span>
-                            <span class="pill">walkthrough <button class="pill-remove" data-category="walkthrough">✕</button></span>
-                            <span class="pill">informational <button class="pill-remove" data-category="informational">✕</button></span>
-                            <span class="pill">transactional <button class="pill-remove" data-category="transactional">✕</button></span>
+                            <span class="pill">how-to <button class="pill-remove"
+                                    data-category="how-to">✕</button></span>
+                            <span class="pill">comparison <button class="pill-remove"
+                                    data-category="comparison">✕</button></span>
+                            <span class="pill">walkthrough <button class="pill-remove"
+                                    data-category="walkthrough">✕</button></span>
+                            <span class="pill">informational <button class="pill-remove"
+                                    data-category="informational">✕</button></span>
+                            <span class="pill">transactional <button class="pill-remove"
+                                    data-category="transactional">✕</button></span>
                         </div>
                         <div class="add-category">
-                            <input type="text" id="newCategoryInput" placeholder="Add custom category" class="input-field-sm">
+                            <input type="text" id="newCategoryInput" placeholder="Add custom category"
+                                class="input-field-sm">
                             <button id="addCategoryBtn" class="btn-secondary-sm">Add</button>
                         </div>
                     </div>
@@ -150,11 +205,7 @@
                             Relevance Filter Prompt
                             <button class="btn-reset" id="resetRelevancePrompt">Reset to Default</button>
                         </label>
-                        <textarea 
-                            id="relevancePrompt" 
-                            class="textarea-field-code" 
-                            rows="8"
-                        ></textarea>
+                        <textarea id="relevancePrompt" class="textarea-field-code" rows="8"></textarea>
                         <p class="help-text">Variables: {topic}, {keyword}</p>
                     </div>
 
@@ -163,11 +214,7 @@
                             Category Classification Prompt
                             <button class="btn-reset" id="resetCategoryPrompt">Reset to Default</button>
                         </label>
-                        <textarea 
-                            id="categoryPrompt" 
-                            class="textarea-field-code" 
-                            rows="8"
-                        ></textarea>
+                        <textarea id="categoryPrompt" class="textarea-field-code" rows="8"></textarea>
                         <p class="help-text">Variables: {keyword}, {categories}</p>
                     </div>
                 </div>
@@ -183,7 +230,8 @@
                 <button id="startBtn" class="btn-primary btn-large">
                     <span class="btn-text">Start Classification</span>
                     <svg class="btn-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M5 10L15 10M15 10L10 5M15 10L10 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M5 10L15 10M15 10L10 5M15 10L10 15" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
                     </svg>
                 </button>
 
@@ -196,11 +244,22 @@
                         </div>
                         <div class="progress-stats">
                             <span id="progressCount">0 / 0</span>
-                            <span id="currentKeyword"></span>
+                            <span id="timeEstimate" class="time-estimate">Estimating time...</span>
                         </div>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
+                    </div>
+
+                    <!-- Live Processing Console -->
+                    <div class="console-container">
+                        <div class="console-header">
+                            <span class="console-title">⚡ Live Processing Console</span>
+                            <span class="console-badge" id="consoleBadge">0 processed</span>
+                        </div>
+                        <div class="console-output" id="consoleOutput">
+                            <div class="console-line console-info">🚀 Starting classification...</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -242,15 +301,19 @@
                 <div class="download-section">
                     <button class="btn-download btn-accepted" id="downloadAccepted">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 3V13M10 13L6 9M10 13L14 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M17 13V15C17 16.1046 16.1046 17 15 17H5C3.89543 17 3 16.1046 3 15V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M10 3V13M10 13L6 9M10 13L14 9" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M17 13V15C17 16.1046 16.1046 17 15 17H5C3.89543 17 3 16.1046 3 15V13"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                         Download Accepted Keywords
                     </button>
                     <button class="btn-download btn-rejected" id="downloadRejected">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 3V13M10 13L6 9M10 13L14 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M17 13V15C17 16.1046 16.1046 17 15 17H5C3.89543 17 3 16.1046 3 15V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M10 3V13M10 13L6 9M10 13L14 9" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" />
+                            <path d="M17 13V15C17 16.1046 16.1046 17 15 17H5C3.89543 17 3 16.1046 3 15V13"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
                         Download Rejected Keywords
                     </button>
@@ -266,4 +329,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

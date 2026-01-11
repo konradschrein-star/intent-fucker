@@ -11,17 +11,42 @@ from config import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 
 class OllamaClient:
+    """
+    This class handles all communication with the Ollama service.
+    
+    Ollama is a local AI service that runs Llama 3.1 on your computer.
+    Think of it like a mini ChatGPT running locally - it takes text prompts
+    and returns AI-generated responses.
+    
+    This client sends our keyword classification prompts to Ollama and
+    gets back JSON responses with the AI's analysis.
+    """
+    
     def __init__(self, base_url: str = OLLAMA_BASE_URL, model: str = OLLAMA_MODEL):
+        # Base URL where Ollama is running (usually localhost:11434)
         self.base_url = base_url
+        # Which AI model to use (llama3.1:8b is the default)
         self.model = model
+        # Full API endpoint for generating responses
         self.api_url = f"{base_url}/api/generate"
         
     def is_available(self) -> bool:
-        """Check if Ollama service is running"""
+        """
+        Check if Ollama service is running and accessible.
+        
+        This is like knocking on a door to see if anyone's home.
+        We send a simple request to Ollama and if it responds, we know it's running.
+        
+        Returns:
+            True if Ollama is running, False otherwise
+        """
         try:
+            # Try to get list of available models from Ollama
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            # If we get a 200 OK response, Ollama is running
             return response.status_code == 200
         except:
+            # Any error means Ollama isn't available
             return False
     
     def list_models(self) -> list:
@@ -37,8 +62,18 @@ class OllamaClient:
     
     def generate(self, prompt: str, max_retries: int = 3) -> Optional[str]:
         """
-        Send a prompt to Llama 3.1 via Ollama
-        Returns the raw text response
+        Send a prompt to Llama 3.1 and get a text response.
+        
+        This is the main function that talks to the AI!
+        We send it a question/prompt (like "Is this keyword about video games?")
+        and it sends back an answer.
+        
+        Args:
+            prompt: The question/instructions to send to the AI
+            max_retries: How many times to retry if it fails (default: 3)
+            
+        Returns:
+            The AI's response as text, or None if all retries failed
         """
         payload = {
             "model": self.model,
