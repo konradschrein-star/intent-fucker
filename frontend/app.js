@@ -103,41 +103,33 @@ const elements = {
 // ============================================================================
 
 async function init() {
-    // 1. Check if Ollama (the AI service) is running
-    await checkOllamaStatus();
-
-    // 2. Load default settings from the backend
-    await loadSettings();
-
-    // 3. Setup all button clicks, file uploads, etc.
-    setupEventListeners();
-}
-
-// Check Ollama status
-async function checkOllamaStatus() {
     try {
-        const response = await fetch(`${API_BASE_URL}/health`);
-        const data = await response.json();
-
-        if (data.ollama_available) {
-            elements.ollamaStatus.classList.add('online');
-            elements.ollamaStatus.innerHTML = `
-                <div class="status-dot"></div>
-                <span>Ollama Online (${data.models.join(', ') || 'No models'})</span>
-            `;
+        // 1. Check system status (backend + Ollama)
+        // This function is defined in app-enhanced.js
+        if (typeof checkSystemStatus === 'function') {
+            await checkSystemStatus();
         } else {
-            elements.ollamaStatus.classList.add('offline');
-            elements.ollamaStatus.innerHTML = `
-                <div class="status-dot"></div>
-                <span>Ollama Offline</span>
-            `;
+            console.error('checkSystemStatus not found - app-enhanced.js may not be loaded');
+        }
+
+        // 2. Setup Ollama installation guide handlers
+        if (typeof setupOllamaGuide === 'function') {
+            setupOllamaGuide();
+        }
+
+        // 3. Load default settings from the backend 
+        await loadSettings();
+
+        // 4. Setup all button clicks, file uploads, etc.
+        setupEventListeners();
+
+        // 5. Refresh status every 30 seconds
+        if (typeof checkSystemStatus === 'function') {
+            setInterval(checkSystemStatus, 30000);
         }
     } catch (error) {
-        elements.ollamaStatus.classList.add('offline');
-        elements.ollamaStatus.innerHTML = `
-            <div class="status-dot"></div>
-            <span>Backend Offline</span>
-        `;
+        console.error('Error during initialization:', error);
+        alert('⚠️ Failed to initialize the application.\n\nPlease refresh the page or check the console for details.');
     }
 }
 
@@ -145,20 +137,48 @@ async function checkOllamaStatus() {
 async function loadSettings() {
     try {
         const response = await fetch(`${API_BASE_URL}/settings`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
 
-        elements.confidenceSlider.value = data.confidence_threshold;
-        elements.confidenceValue.textContent = data.confidence_threshold;
+        // Load confidence threshold
+        if (data.confidence_threshold) {
+            elements.confidenceSlider.value = data.confidence_threshold;
+            elements.confidenceValue.textContent = data.confidence_threshold;
+        }
 
-        categories = data.categories;
-        renderCategories();
+        // Load categories
+        if (data.categories && Array.isArray(data.categories)) {
+            categories = data.categories;
+            renderCategories();
+        }
 
-        defaultRelevancePrompt = data.relevance_prompt;
-        defaultCategoryPrompt = data.category_prompt;
-        elements.relevancePrompt.value = data.relevance_prompt;
-        elements.categoryPrompt.value = data.category_prompt;
+        // Load prompts
+        if (data.relevance_prompt) {
+            defaultRelevancePrompt = data.relevance_prompt;
+            elements.relevancePrompt.value = data.relevance_prompt;
+        }
+
+        if (data.category_prompt) {
+            defaultCategoryPrompt = data.category_prompt;
+            elements.categoryPrompt.value = data.category_prompt;
+        }
+
+        console.log('✅ Settings loaded successfully');
     } catch (error) {
         console.error('Error loading settings:', error);
+        console.warn('Using default settings');
+
+        // Use fallback defaults if backend is unavailable
+        elements.confidenceSlider.value = 75;
+        elements.confidenceValue.textContent = '75';
+        renderCategories(); // Use the default categories already set
+
+        // Don't alert here - backend might just be starting up
+        // User will see the issue when they try to process
     }
 }
 
@@ -234,8 +254,16 @@ function handleFileSelect(e) {
 }
 
 async function handleFile(file) {
+    // Validate file type
     if (!file.name.endsWith('.csv')) {
-        alert('Please upload a CSV file');
+        alert('⚠️ Invalid file type\n\nPlease upload a CSV file (.csv extension)');
+        return;
+    }
+
+    // Validate file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+    if (file.size > maxSize) {
+        alert(`⚠️ File too large\n\nMaximum file size: 50MB\nYour file: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         return;
     }
 
@@ -248,6 +276,10 @@ async function handleFile(file) {
             body: formData
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -257,10 +289,27 @@ async function handleFile(file) {
             elements.uploadZone.style.display = 'none';
             elements.fileInfo.style.display = 'flex';
         } else {
-            alert(data.error || 'Upload failed');
+            throw new Error(data.error || 'Upload failed');
         }
     } catch (error) {
-        alert('Error uploading file: ' + error.message);
+        console.error('Upload error:', error);
+
+        let errorMessage = 'Failed to upload file:\n\n';
+
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += '❌ Cannot connect to backend server\n\n';
+            errorMessage += 'Make sure the backend is running.';
+        } else if (error.message.includes('Missing required columns')) {
+            errorMessage += '❌ Invalid CSV format\n\n';
+            errorMessage += 'Your CSV must have these columns:\n';
+            errorMessage += '• title\n';
+            errorMessage += '• views\n';
+            errorMessage += '• views_per_year';
+        } else {
+            errorMessage += error.message;
+        }
+
+        alert(errorMessage);
     }
 }
 
@@ -302,7 +351,7 @@ function addCategory() {
     if (!newCategory) return;
 
     if (categories.includes(newCategory)) {
-        alert('Category already exists');
+        alert('⚠️ Category already exists\n\nTry a different name.');
         return;
     }
 
@@ -313,7 +362,7 @@ function addCategory() {
 
 function removeCategory(category) {
     if (categories.length <= 1) {
-        alert('You must have at least one category');
+        alert('⚠️ Cannot remove last category\n\nYou must have at least one category.');
         return;
     }
 
@@ -325,8 +374,10 @@ function removeCategory(category) {
 async function startProcessing() {
     const topic = elements.topicInput.value.trim();
 
+    // Validate topic
     if (!topic) {
-        alert('Please enter a topic');
+        alert('⚠️ Please enter a topic\n\nExample: "Ys video game series"');
+        elements.topicInput.focus();
         return;
     }
 
@@ -335,7 +386,13 @@ async function startProcessing() {
     const hasManualInput = elements.manualInput.value.trim() !== '';
 
     if (!hasFile && !hasManualInput) {
-        alert('Please upload a CSV file or enter keywords manually');
+        alert('⚠️ Please provide keywords\n\nYou can either:\n• Upload a CSV file, or\n• Enter keywords manually in the "Manual Input" tab');
+        return;
+    }
+
+    // Validate categories exist
+    if (categories.length === 0) {
+        alert('⚠️ You must have at least one category\n\nPlease add a category in the settings.');
         return;
     }
 
@@ -364,23 +421,52 @@ async function startProcessing() {
             body: JSON.stringify(requestData)
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const data = await response.json();
 
         if (data.success) {
             currentJobId = data.job_id;
+
+            // Reset console
+            if (typeof resetConsole === 'function') {
+                resetConsole();
+            }
 
             // Show progress
             elements.startBtn.disabled = true;
             elements.progressContainer.style.display = 'block';
             elements.resultsSection.style.display = 'none';
 
-            // Start polling
-            pollProgress();
+            // Start polling with enhanced version
+            if (typeof pollProgressEnhanced === 'function') {
+                pollProgressEnhanced();
+            } else {
+                // Fallback to basic polling
+                console.warn('Enhanced polling not available, using basic polling');
+                pollProgress();
+            }
         } else {
-            alert(data.error || 'Failed to start processing');
+            throw new Error(data.error || 'Unknown error occurred');
         }
     } catch (error) {
-        alert('Error starting processing: ' + error.message);
+        console.error('Error starting processing:', error);
+
+        let errorMessage = 'Failed to start processing:\n\n';
+
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += '❌ Cannot connect to backend server\n\n';
+            errorMessage += 'Make sure the backend is running:\n';
+            errorMessage += '1. Open terminal\n';
+            errorMessage += '2. cd backend\n';
+            errorMessage += '3. python app.py';
+        } else {
+            errorMessage += error.message;
+        }
+
+        alert(errorMessage);
     }
 }
 
@@ -395,14 +481,13 @@ async function pollProgress() {
         const percentage = data.percentage || 0;
         elements.progressPercentage.textContent = `${percentage.toFixed(1)}%`;
         elements.progressCount.textContent = `${data.progress} / ${data.total}`;
-        elements.currentKeyword.textContent = data.current_keyword || '';
         elements.progressFill.style.width = `${percentage}%`;
 
         if (data.status === 'completed') {
             // Processing complete
             await loadResults();
         } else if (data.status === 'failed') {
-            alert('Processing failed');
+            alert('❌ Processing failed\n\nCheck the backend console for error details.');
             resetProcessing();
         } else {
             // Continue polling
@@ -427,6 +512,7 @@ async function loadResults() {
         }
     } catch (error) {
         console.error('Error loading results:', error);
+        alert('❌ Error loading results\n\nPlease try refreshing the page.');
     }
 }
 
