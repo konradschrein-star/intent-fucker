@@ -117,7 +117,7 @@ class CSVProcessor:
     
     def add_result(self, keyword_data: Dict, classification_result: Dict):
         """
-        Add a classification result
+        Add a classification result (optimized - no reason field needed!)
         """
         result = {
             'title': keyword_data['title'],
@@ -126,8 +126,7 @@ class CSVProcessor:
             'relevance_score': classification_result['relevance_score'],
             'relevance_accepted': classification_result['relevance_accepted'],
             'category': classification_result['category'],
-            'category_confidence': classification_result['category_confidence'],
-            'reason': classification_result['reason']
+            'category_confidence': classification_result['category_confidence']
         }
         self.results.append(result)
     
