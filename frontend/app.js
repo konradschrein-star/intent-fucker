@@ -92,7 +92,17 @@ const elements = {
     categoryBreakdown: document.getElementById('categoryBreakdown'),
     categoryBars: document.getElementById('categoryBars'),
     downloadAccepted: document.getElementById('downloadAccepted'),
-    downloadRejected: document.getElementById('downloadRejected')
+    downloadRejected: document.getElementById('downloadRejected'),
+
+    // Processing Console
+    consoleSection: document.getElementById('consoleSection'),
+    consoleOutput: document.getElementById('consoleOutput'),
+    consoleBadge: document.getElementById('consoleBadge'),
+    progressFill: document.getElementById('progressFill'),
+    progressPercentage: document.getElementById('progressPercentage'),
+    progressCount: document.getElementById('progressCount'),
+    progressStatus: document.getElementById('progressStatus'),
+    timeEstimate: document.getElementById('timeEstimate')
 };
 
 // ============================================================================
@@ -377,154 +387,271 @@ async function startProcessing() {
 
     if (!hasFile && !hasManualInput) {
         alert('⚠️ Please provide keywords\n\nYou can either:\n• Upload a CSV file, or\n• Enter keywords manually in the "Manual Input" tab');
-        return;
+        // Validate categories exist
+        if (categories.length === 0) {
+            alert('⚠️ You must have at least one category\n\nPlease add a category in the settings.');
+            return;
+        }
+
+        // Reset UI for new processing
+        elements.resultsSection.style.display = 'none';
+
+        // Show and reset processing console
+        elements.consoleSection.style.display = 'block';
+        if (window.resetConsole) {
+            window.resetConsole();
+        }
+
+        // Reset progress
+        elements.progressPercentage.textContent = '0%';
+        elements.progressCount.textContent = '0 / 0';
+        elements.progressFill.style.width = '0%';
+        elements.progressStatus.textContent = 'Starting...';
+        elements.timeEstimate.textContent = 'Calculating...';
+
+        // Disable start button during processing
+        elements.startBtn.disabled = true;
+        elements.startBtn.textContent = 'Processing...';
+
+        // Prepare request data
+        const requestData = {
+            topic,
+            confidence_threshold: parseInt(elements.confidenceSlider.value),
+            categories,
+            classification_prompt: elements.classificationPrompt.value
+        };
+
+        if (hasFile) {
+            requestData.filepath = uploadedFilePath;
+        } else {
+            requestData.manual_input = elements.manualInput.value;
+        }
+
+        try {
+            // Start processing
+            const response = await fetch(`${API_BASE_URL}/process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                currentJobId = data.job_id;
+
+                // Reset console
+                if (typeof resetConsole === 'function') {
+                    resetConsole();
+                }
+
+                // Show progress
+                elements.startBtn.disabled = true;
+                elements.progressContainer.style.display = 'block';
+                elements.resultsSection.style.display = 'none';
+
+                // Start polling with enhanced version
+                if (typeof pollProgressEnhanced === 'function') {
+                    pollProgressEnhanced();
+                } else {
+                    // Fallback to basic polling
+                    console.warn('Enhanced polling not available, using basic polling');
+                    pollProgress();
+                }
+            } else {
+                throw new Error(data.error || 'Unknown error occurred');
+            }
+        } catch (error) {
+            console.error('Error starting processing:', error);
+
+            let errorMessage = 'Failed to start processing:\n\n';
+
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage += '❌ Cannot connect to backend server\n\n';
+                errorMessage += 'Make sure the backend is running:\n';
+                errorMessage += '1. Open terminal\n';
+                errorMessage += '2. cd backend\n';
+                errorMessage += '3. python app.py';
+            } else {
+                errorMessage += error.message;
+            }
+
+            alert(errorMessage);
+        }
     }
+
+    async function pollProgress() {
+        if (!currentJobId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/progress/${currentJobId}`);
+            return;
+        }
 
     // Validate categories exist
     if (categories.length === 0) {
-        alert('⚠️ You must have at least one category\n\nPlease add a category in the settings.');
-        return;
-    }
-
-    // Prepare request
-    const requestData = {
-        topic,
-        confidence_threshold: parseInt(elements.confidenceSlider.value),
-        categories,
-        classification_prompt: elements.classificationPrompt.value
-    };
-
-    if (hasFile) {
-        requestData.filepath = uploadedFilePath;
-    } else {
-        requestData.manual_input = elements.manualInput.value;
-    }
-
-    try {
-        // Start processing
-        const response = await fetch(`${API_BASE_URL}/process`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            alert('⚠️ You must have at least one category\n\nPlease add a category in the settings.');
+            return;
         }
 
-        const data = await response.json();
+        // Reset UI for new processing
+        elements.resultsSection.style.display = 'none';
 
-        if (data.success) {
-            currentJobId = data.job_id;
+        // Show and reset processing console
+        elements.consoleSection.style.display = 'block';
+        if (window.resetConsole) {
+            window.resetConsole();
+        }
 
-            // Reset console
-            if (typeof resetConsole === 'function') {
-                resetConsole();
+        // Reset progress
+        elements.progressPercentage.textContent = '0%';
+        elements.progressCount.textContent = '0 / 0';
+        elements.progressFill.style.width = '0%';
+        elements.progressStatus.textContent = 'Starting...';
+        elements.timeEstimate.textContent = 'Calculating...';
+
+        // Disable start button during processing
+        elements.startBtn.disabled = true;
+        elements.startBtn.textContent = 'Processing...';
+
+        // Prepare request data
+        const requestData = {
+            topic,
+            confidence_threshold: parseInt(elements.confidenceSlider.value),
+            categories,
+            classification_prompt: elements.classificationPrompt.value
+        };
+
+        if (hasFile) {
+            requestData.filepath = uploadedFilePath;
+        } else {
+            requestData.manual_input = elements.manualInput.value;
+        }
+
+        try {
+            // Start processing
+            const response = await fetch(`${API_BASE_URL}/process`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            // Show progress
-            elements.startBtn.disabled = true;
-            elements.progressContainer.style.display = 'block';
-            elements.resultsSection.style.display = 'none';
+            const data = await response.json();
 
-            // Start polling with enhanced version
-            if (typeof pollProgressEnhanced === 'function') {
-                pollProgressEnhanced();
+            if (data.success) {
+                currentJobId = data.job_id;
+
+                // Reset console
+                if (typeof resetConsole === 'function') {
+                    resetConsole();
+                }
+
+                // Show progress
+                elements.startBtn.disabled = true;
+                elements.progressContainer.style.display = 'block';
+                elements.resultsSection.style.display = 'none';
+
+                // Start polling with enhanced version
+                if (typeof pollProgressEnhanced === 'function') {
+                    pollProgressEnhanced();
+                } else {
+                    // Fallback to basic polling
+                    console.warn('Enhanced polling not available, using basic polling');
+                    pollProgress();
+                }
             } else {
-                // Fallback to basic polling
-                console.warn('Enhanced polling not available, using basic polling');
-                pollProgress();
+                throw new Error(data.error || 'Unknown error occurred');
             }
-        } else {
-            throw new Error(data.error || 'Unknown error occurred');
+        } catch (error) {
+            console.error('Error starting processing:', error);
+
+            let errorMessage = 'Failed to start processing:\n\n';
+
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage += '❌ Cannot connect to backend server\n\n';
+                errorMessage += 'Make sure the backend is running:\n';
+                errorMessage += '1. Open terminal\n';
+                errorMessage += '2. cd backend\n';
+                errorMessage += '3. python app.py';
+            } else {
+                errorMessage += error.message;
+            }
+
+            alert(errorMessage);
         }
-    } catch (error) {
-        console.error('Error starting processing:', error);
-
-        let errorMessage = 'Failed to start processing:\n\n';
-
-        if (error.message.includes('Failed to fetch')) {
-            errorMessage += '❌ Cannot connect to backend server\n\n';
-            errorMessage += 'Make sure the backend is running:\n';
-            errorMessage += '1. Open terminal\n';
-            errorMessage += '2. cd backend\n';
-            errorMessage += '3. python app.py';
-        } else {
-            errorMessage += error.message;
-        }
-
-        alert(errorMessage);
     }
-}
 
-async function pollProgress() {
-    if (!currentJobId) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/progress/${currentJobId}`);
-        const data = await response.json();
-
-        // Update UI
-        const percentage = data.percentage || 0;
-        elements.progressPercentage.textContent = `${percentage.toFixed(1)}%`;
-        elements.progressCount.textContent = `${data.progress} / ${data.total}`;
-        elements.progressFill.style.width = `${percentage}%`;
-
-        if (data.status === 'completed') {
-            // Processing complete
-            await loadResults();
-        } else if (data.status === 'failed') {
-            alert('❌ Processing failed\n\nCheck the backend console for error details.');
-            resetProcessing();
-        } else {
-            // Continue polling
-            setTimeout(pollProgress, 500);
+    function pollProgress() {
+        // Use enhanced polling if available (shows live console + progress)
+        if (window.pollProgressEnhanced) {
+            window.pollProgressEnhanced();
+            return;
         }
-    } catch (error) {
-        console.error('Error polling progress:', error);
-        setTimeout(pollProgress, 1000);
+
+        // Fallback to basic polling
+        if (!currentJobId) return;
+
+        fetch(`${API_BASE_URL}/progress/${currentJobId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Progress:', data);
+
+                if (data.status === 'completed') {
+                    loadResults();
+                } else if (data.status === 'failed') {
+                    alert('Processing failed');
+                    resetProcessing();
+                } else {
+                    setTimeout(pollProgress, 500);
+                }
+            })
+            .catch(error => {
+                console.error('Error polling progress:', error);
+                setTimeout(pollProgress, 1000);
+                const data = await response.json();
+
+                if (data.status === 'completed') {
+                    displayResults(data);
+                    resetProcessing();
+                }
+            } catch (error) {
+                console.error('Error loading results:', error);
+                alert('❌ Error loading results\n\nPlease try refreshing the page.');
+            }
     }
-}
 
-async function loadResults() {
-    if (!currentJobId) return;
+    function displayResults(data) {
+        const stats = data.statistics;
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/results/${currentJobId}`);
-        const data = await response.json();
+        // Update statistics
+        elements.statTotal.textContent = stats.total;
+        elements.statAccepted.textContent = stats.accepted;
+        elements.statRejected.textContent = stats.rejected;
+        elements.statRate.textContent = `${stats.acceptance_rate}%`;
 
-        if (data.status === 'completed') {
-            displayResults(data);
-            resetProcessing();
-        }
-    } catch (error) {
-        console.error('Error loading results:', error);
-        alert('❌ Error loading results\n\nPlease try refreshing the page.');
-    }
-}
+        // Category breakdown
+        const categoryBreakdown = stats.category_breakdown;
+        const maxCount = Math.max(...Object.values(categoryBreakdown));
 
-function displayResults(data) {
-    const stats = data.statistics;
+        elements.categoryBars.innerHTML = Object.entries(categoryBreakdown)
+            .sort((a, b) => b[1] - a[1])
+            .map(([category, count]) => {
+                const percentage = (count / stats.total * 100).toFixed(1);
+                const width = (count / maxCount * 100);
 
-    // Update statistics
-    elements.statTotal.textContent = stats.total;
-    elements.statAccepted.textContent = stats.accepted;
-    elements.statRejected.textContent = stats.rejected;
-    elements.statRate.textContent = `${stats.acceptance_rate}%`;
-
-    // Category breakdown
-    const categoryBreakdown = stats.category_breakdown;
-    const maxCount = Math.max(...Object.values(categoryBreakdown));
-
-    elements.categoryBars.innerHTML = Object.entries(categoryBreakdown)
-        .sort((a, b) => b[1] - a[1])
-        .map(([category, count]) => {
-            const percentage = (count / stats.total * 100).toFixed(1);
-            const width = (count / maxCount * 100);
-
-            return `
+                return `
                 <div class="category-bar-item">
                     <div class="category-bar-label">${category}</div>
                     <div class="category-bar-container">
@@ -534,32 +661,32 @@ function displayResults(data) {
                     </div>
                 </div>
             `;
-        })
-        .join('');
+            })
+            .join('');
 
-    // Setup download buttons
-    const acceptedFileName = data.accepted_file.split('\\').pop().split('/').pop();
-    const rejectedFileName = data.rejected_file.split('\\').pop().split('/').pop();
+        // Setup download buttons
+        const acceptedFileName = data.accepted_file.split('\\').pop().split('/').pop();
+        const rejectedFileName = data.rejected_file.split('\\').pop().split('/').pop();
 
-    elements.downloadAccepted.onclick = () => downloadFile(acceptedFileName);
-    elements.downloadRejected.onclick = () => downloadFile(rejectedFileName);
+        elements.downloadAccepted.onclick = () => downloadFile(acceptedFileName);
+        elements.downloadRejected.onclick = () => downloadFile(rejectedFileName);
 
-    // Show results
-    elements.resultsSection.style.display = 'block';
+        // Show results
+        elements.resultsSection.style.display = 'block';
 
-    // Scroll to results
-    elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
-}
+        // Scroll to results
+        elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
 
-function downloadFile(filename) {
-    window.open(`${API_BASE_URL}/download/${filename}`, '_blank');
-}
+    function downloadFile(filename) {
+        window.open(`${API_BASE_URL}/download/${filename}`, '_blank');
+    }
 
-function resetProcessing() {
-    elements.startBtn.disabled = false;
-    elements.progressContainer.style.display = 'none';
-    elements.progressFill.style.width = '0%';
-}
+    function resetProcessing() {
+        elements.startBtn.disabled = false;
+        elements.progressContainer.style.display = 'none';
+        elements.progressFill.style.width = '0%';
+    }
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', init);
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', init);
